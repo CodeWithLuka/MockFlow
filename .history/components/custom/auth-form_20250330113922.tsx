@@ -63,7 +63,7 @@ export const AuthForm = ({ type }: { type: FormType }) => {
 					password,
 				});
 
-				if (!result?.success) {
+				if (!result.success) {
 					toast.error(result.message);
 					return;
 				}
