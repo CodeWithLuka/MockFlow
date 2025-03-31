@@ -38,6 +38,22 @@ export const Agent = ({
 	const [isSpeaking, setIsSpeaking] = useState(false);
 	const [lastMessage, setLastMessage] = useState<string>("");
 
+	// Request camera permission when component mounts
+	useEffect(() => {
+		navigator.mediaDevices
+			.getUserMedia({ video: true })
+			.then((stream) => {
+				// Stop all tracks since we only need permission
+				stream.getTracks().forEach((track) => track.stop());
+			})
+			.catch((err) => {
+				console.error("Camera permission request error:", err);
+				alert(
+					"Camera access is required. Please allow camera access in your browser settings.",
+				);
+			});
+	}, []);
+
 	useEffect(() => {
 		const onCallStart = () => {
 			setCallStatus(CallStatus.ACTIVE);

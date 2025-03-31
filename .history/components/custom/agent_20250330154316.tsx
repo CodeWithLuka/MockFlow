@@ -1,11 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-
 import { interviewer } from "@/constants";
-
 import { createFeedback } from "@/lib/actions/general.action";
 import { cn } from "@/lib/utils";
 import { vapi } from "@/lib/vapi.sdk";
@@ -37,6 +36,22 @@ export const Agent = ({
 	const [messages, setMessages] = useState<SavedMessage[]>([]);
 	const [isSpeaking, setIsSpeaking] = useState(false);
 	const [lastMessage, setLastMessage] = useState<string>("");
+
+	// Request camera permission on mount
+	useEffect(() => {
+		navigator.mediaDevices
+			.getUserMedia({ video: true })
+			.then((stream) => {
+				// Stop all tracks immediately since we only need permission
+				stream.getTracks().forEach((track) => track.stop());
+			})
+			.catch((err) => {
+				console.error("Camera permission request error:", err);
+				alert(
+					"Camera access is required. Please allow camera access in your browser settings.",
+				);
+			});
+	}, []);
 
 	useEffect(() => {
 		const onCallStart = () => {
@@ -70,8 +85,13 @@ export const Agent = ({
 			setIsSpeaking(false);
 		};
 
-		const onError = (error: Error) => {
+		const onError = (error: any) => {
 			console.log("Error:", error);
+			if (error?.error?.name === "NotAllowedError") {
+				alert(
+					"Camera access is denied. Please allow camera access in your browser settings.",
+				);
+			}
 		};
 
 		vapi.on("call-start", onCallStart);
@@ -155,9 +175,9 @@ export const Agent = ({
 	};
 
 	const latestMessage = messages[messages.length - 1]?.content;
-
 	const isCallInactiveOrFinished =
-		callStatus === CallStatus.INACTIVE || CallStatus.FINISHED;
+		callStatus === CallStatus.INACTIVE ||
+		callStatus === CallStatus.FINISHED;
 
 	return (
 		<>
@@ -209,18 +229,15 @@ export const Agent = ({
 			)}
 
 			<div className="w-full flex justify-center">
-				{callStatus !== "ACTIVE" ? (
-					<button
-						className="relative btn-call"
-						onClick={() => handleCall()}
-					>
+				{callStatus !== CallStatus.ACTIVE ? (
+					<button className="relative btn-call" onClick={handleCall}>
 						<span
 							className={cn(
 								"absolute animate-ping rounded-full opacity-75",
-								callStatus !== "CONNECTING" && "hidden",
+								callStatus !== CallStatus.CONNECTING &&
+									"hidden",
 							)}
 						/>
-
 						<span className="relative">
 							{isCallInactiveOrFinished ? "Call" : ". . ."}
 						</span>
@@ -228,7 +245,7 @@ export const Agent = ({
 				) : (
 					<button
 						className="btn-disconnect"
-						onClick={() => handleDisconnect()}
+						onClick={handleDisconnect}
 					>
 						End
 					</button>
